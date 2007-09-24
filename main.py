@@ -41,6 +41,7 @@ class Window(QWidget):
 	def __init__(self):
 		QWidget.__init__(self)
 		self.initModel()
+		self.initProxyModel()
 		self.initView()
 
 
@@ -54,19 +55,34 @@ class Window(QWidget):
 			self._model.appendRow(item)
 
 
-	def initView(self):
-		self._view = QListView(self)
-		layout = QVBoxLayout(self)
-		layout.setMargin(0)
-		layout.addWidget(self._view)
-		self._view.setModel(self._model)
-		self._view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+	def initProxyModel(self):
+		self._proxyModel = QSortFilterProxyModel()
+		self._proxyModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
+		self._proxyModel.setSourceModel(self._model)
 
+
+	def initView(self):
+		# LineEdit
+		self._lineEdit = QLineEdit(self)
+		QObject.connect(self._lineEdit, SIGNAL("textEdited(const QString&)"),
+			self._proxyModel.setFilterFixedString)
+
+		# View
+		self._view = QListView(self)
+		self._view.setModel(self._proxyModel)
+		self._view.setEditTriggers(QAbstractItemView.NoEditTriggers)
 		QObject.connect(self._view, SIGNAL("activated(const QModelIndex&)"),
 			self.switchToWindow)
 
+		layout = QVBoxLayout(self)
+		layout.setMargin(0)
+		layout.addWidget(self._lineEdit)
+		layout.addWidget(self._view)
+
+
 	def switchToWindow(self, index):
-		item = self._model.itemFromIndex(index)
+		sourceIndex = self._proxyModel.mapToSource(index)
+		item = self._model.itemFromIndex(sourceIndex)
 		wid = item.data().toString()
 		switchToWindow(unicode(wid))
 		self.close()
