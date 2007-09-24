@@ -65,7 +65,11 @@ class Window(QWidget):
 		# LineEdit
 		self._lineEdit = QLineEdit(self)
 		QObject.connect(self._lineEdit, SIGNAL("textEdited(const QString&)"),
-			self._proxyModel.setFilterFixedString)
+			self.updateFilter)
+		QObject.connect(self._lineEdit, SIGNAL("returnPressed()"),
+			self.slotReturnPressed)
+
+		self._lineEdit.installEventFilter(self)
 
 		# View
 		self._view = QListView(self)
@@ -74,10 +78,31 @@ class Window(QWidget):
 		QObject.connect(self._view, SIGNAL("activated(const QModelIndex&)"),
 			self.switchToWindow)
 
+		# Layout
 		layout = QVBoxLayout(self)
 		layout.setMargin(0)
 		layout.addWidget(self._lineEdit)
 		layout.addWidget(self._view)
+
+
+	def updateFilter(self, text):
+		self._proxyModel.setFilterFixedString(text)
+		if not self._view.currentIndex().isValid():
+			firstIndex = self._proxyModel.index(0, 0)
+			if firstIndex.isValid():
+				self._view.setCurrentIndex(firstIndex)
+
+
+	def eventFilter(self, obj, event):
+		if event.type() != QEvent.KeyPress:
+			return False
+
+		if event.key() in (Qt.Key_Up, Qt.Key_Down):
+			newEvent = QKeyEvent(event.type(), event.key(), event.modifiers(), event.text())
+			QApplication.postEvent(self._view, newEvent)
+			return True
+
+		return False
 
 
 	def switchToWindow(self, index):
@@ -86,6 +111,19 @@ class Window(QWidget):
 		wid = item.data().toString()
 		switchToWindow(unicode(wid))
 		self.close()
+
+
+	def slotReturnPressed(self):
+		index = self._view.currentIndex()
+		if index.isValid():
+			self.switchToWindow(index)
+		else:
+			cmd = unicode(self._lineEdit.text())
+			if os.fork() == 0:
+				os.system(cmd)
+				sys.exit(0)
+			self.close()
+
 
 def main():
 	app = QApplication(sys.argv)
