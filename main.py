@@ -53,9 +53,11 @@ class ListView(QListView):
 class Window(QDialog):
 	def __init__(self):
 		QDialog.__init__(self)
+		flags = self.windowFlags()
+		self.setWindowFlags(flags | Qt.FramelessWindowHint)
 		self.initModel()
 		self.initProxyModel()
-		self.initView()
+		self.initUi()
 
 
 	def initModel(self):
@@ -74,9 +76,15 @@ class Window(QDialog):
 		self._proxyModel.setSourceModel(self._model)
 
 
-	def initView(self):
+	def initUi(self):
+		frame = QFrame(self)
+		frame.setFrameStyle(QFrame.Box | QFrame.Plain)
+		layout = QVBoxLayout(self)
+		layout.setMargin(0)
+		layout.addWidget(frame)
+
 		# LineEdit
-		self._lineEdit = QLineEdit(self)
+		self._lineEdit = QLineEdit(frame)
 		QObject.connect(self._lineEdit, SIGNAL("textEdited(const QString&)"),
 			self.updateFilter)
 		QObject.connect(self._lineEdit, SIGNAL("returnPressed()"),
@@ -85,15 +93,15 @@ class Window(QDialog):
 		self._lineEdit.installEventFilter(self)
 
 		# View
-		self._view = ListView(self)
+		self._view = ListView(frame)
 		self._view.setModel(self._proxyModel)
 		self._view.setEditTriggers(QAbstractItemView.NoEditTriggers)
 		QObject.connect(self._view, SIGNAL("activated(const QModelIndex&)"),
 			self.switchToWindow)
 
 		# Layout
-		layout = QVBoxLayout(self)
-		layout.setMargin(0)
+		layout = QVBoxLayout(frame)
+		layout.setMargin(6)
 		layout.addWidget(self._lineEdit)
 		layout.addWidget(self._view)
 
