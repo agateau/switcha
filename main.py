@@ -132,9 +132,7 @@ class Window(QDialog):
 			self.switchToWindow(index)
 		else:
 			cmd = unicode(self._lineEdit.text())
-			if os.fork() == 0:
-				os.system(cmd)
-				sys.exit(0)
+			os.spawnlp(os.P_NOWAIT, 'sh', 'sh', '-c', cmd)
 			self.close()
 
 
