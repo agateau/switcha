@@ -50,9 +50,9 @@ class ListView(QListView):
 		return QSize(width + 10, height + 10)
 
 
-class Window(QWidget):
+class Window(QDialog):
 	def __init__(self):
-		QWidget.__init__(self)
+		QDialog.__init__(self)
 		self.initModel()
 		self.initProxyModel()
 		self.initView()
