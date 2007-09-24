@@ -98,10 +98,6 @@ class Window(QWidget):
 		layout.addWidget(self._view)
 
 
-	def zsizeHint(self):
-		return QSize(400, 300)
-
-
 	def updateFilter(self, text):
 		self._proxyModel.setFilterFixedString(text)
 		if not self._view.currentIndex().isValid():
