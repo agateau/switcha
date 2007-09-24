@@ -37,6 +37,19 @@ def switchToWindow(wid):
 	runWmCtrl("-ia", wid)
 
 
+class ListView(QListView):
+	def sizeHint(self):
+		width = 0
+		height = 0
+		options = self.viewOptions()
+		for pos in range(self.model().rowCount()):
+			index = self.model().index(pos, 0)
+			hint = self.itemDelegate().sizeHint(options, index)
+			width = max(width, hint.width())
+			height += hint.height()
+		return QSize(width + 10, height + 10)
+
+
 class Window(QWidget):
 	def __init__(self):
 		QWidget.__init__(self)
@@ -72,7 +85,7 @@ class Window(QWidget):
 		self._lineEdit.installEventFilter(self)
 
 		# View
-		self._view = QListView(self)
+		self._view = ListView(self)
 		self._view.setModel(self._proxyModel)
 		self._view.setEditTriggers(QAbstractItemView.NoEditTriggers)
 		QObject.connect(self._view, SIGNAL("activated(const QModelIndex&)"),
@@ -83,6 +96,10 @@ class Window(QWidget):
 		layout.setMargin(0)
 		layout.addWidget(self._lineEdit)
 		layout.addWidget(self._view)
+
+
+	def zsizeHint(self):
+		return QSize(400, 300)
 
 
 	def updateFilter(self, text):
@@ -129,8 +146,12 @@ def main():
 	app = QApplication(sys.argv)
 	window = Window()
 
+	rect = QApplication.desktop().availableGeometry()
+	window.move( \
+		rect.left() + (rect.width() - window.sizeHint().width()) / 2, \
+		rect.top() + (rect.height() - window.sizeHint().height()) / 2 \
+		)
 	window.show()
-	window.resize(400, 300)
 	app.exec_()
 
 
