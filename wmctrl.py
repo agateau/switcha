@@ -1,6 +1,11 @@
 import os
 import re
 
+BLACKLIST=[
+"KDE Desktop",
+"kicker"
+]
+
 reSimplify = re.compile("  +")
 def simplifySpaces(txt):
 	return reSimplify.sub(" ", txt)
@@ -23,7 +28,8 @@ def getWindowList():
 		tokens = line.split(" ")
 		wid = tokens[0]
 		text = " ".join(tokens[3:])
-		lst.append( (text, wid) )
+		if text not in BLACKLIST:
+			lst.append( (text, wid) )
 	return lst
 
 
