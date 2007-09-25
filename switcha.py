@@ -1,41 +1,11 @@
 #!/usr/bin/env python
 import os
 import sys
-import re
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-reSimplify = re.compile("  +")
-def simplifySpaces(txt):
-	return reSimplify.sub(" ", txt)
-
-
-def runWmCtrl(*args):
-	cmd = ["wmctrl"]
-	cmd.extend(args)
-	print cmd
-	sin, sout = os.popen2(cmd)
-	sin.close()
-	lines = [simplifySpaces(x.strip()) for x in sout.readlines()]
-	return lines
-
-
-def getWindowList():
-	"""0x032000e1  0 cpc6128 Qt Designer"""
-	lines = runWmCtrl("-l")
-	lst = []
-	for line in lines:
-		tokens = line.split(" ")
-		wid = tokens[0]
-		text = " ".join(tokens[3:])
-		lst.append( (text, wid) )
-	return lst
-
-
-def switchToWindow(wid):
-	runWmCtrl("-ia", wid)
-
+import wmctrl
 
 class ListView(QListView):
 	def sizeHint(self):
@@ -61,7 +31,7 @@ class Window(QDialog):
 
 
 	def initModel(self):
-		lst = getWindowList()
+		lst = wmctrl.getWindowList()
 		self._model = QStandardItemModel()
 		for text, wid in lst:
 			item = QStandardItem(unicode(text, "utf8"))
@@ -130,7 +100,7 @@ class Window(QDialog):
 		sourceIndex = self._proxyModel.mapToSource(index)
 		item = self._model.itemFromIndex(sourceIndex)
 		wid = item.data().toString()
-		switchToWindow(unicode(wid))
+		wmctrl.switchToWindow(unicode(wid))
 		self.close()
 
 
