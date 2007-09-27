@@ -59,7 +59,9 @@ class Window(QDialog):
 		self._view.addColumn("")
 		self._view.header().hide()
 		for info in self._windowList:
-			QListViewItem(self._view, info.visibleName())
+			item = QListViewItem(self._view, info.visibleName())
+			pix = KWin.icon(info.win(), 16, 16, True)
+			item.setPixmap(0, pix)
 
 		if len(self._windowList) > 0:
 			self._view.setSelected(self._view.firstChild(), True)
