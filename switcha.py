@@ -2,48 +2,37 @@
 import os
 import sys
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from qt import *
+from kdecore import *
+from kdeui import *
 
 import wmctrl
 
-class ListView(QListView):
-	def sizeHint(self):
-		width = 0
-		height = 0
-		options = self.viewOptions()
-		for pos in range(self.model().rowCount()):
-			index = self.model().index(pos, 0)
-			hint = self.itemDelegate().sizeHint(options, index)
-			width = max(width, hint.width())
-			height += hint.height()
-		return QSize(width + 10, height + 10)
+class ListViewSearchLine(KListViewSearchLine):
+	def updateSearch(self, text):
+		KListViewSearchLine.updateSearch(self, text)
+
+		view = self.listView()
+		item = view.selectedItem()
+		if item and item.isVisible():
+			return
+
+		iterator = QListViewItemIterator(view, QListViewItemIterator.Visible)
+		item = iterator.current()
+		if item:
+			view.setSelected(item, True)
 
 
 class Window(QDialog):
 	def __init__(self):
 		QDialog.__init__(self)
-		flags = self.windowFlags()
-		self.setWindowFlags(flags | Qt.FramelessWindowHint)
+		self.setCaption("Switcha")
 		self.initModel()
-		self.initProxyModel()
 		self.initUi()
 
 
 	def initModel(self):
-		lst = wmctrl.getWindowList()
-		self._model = QStandardItemModel()
-		for text, wid in lst:
-			item = QStandardItem(unicode(text, "utf8"))
-			data = QVariant(QString(wid))
-			item.setData(data)
-			self._model.appendRow(item)
-
-
-	def initProxyModel(self):
-		self._proxyModel = QSortFilterProxyModel()
-		self._proxyModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
-		self._proxyModel.setSourceModel(self._model)
+		self._windowList = wmctrl.getWindowList()
 
 
 	def initUi(self):
@@ -54,20 +43,27 @@ class Window(QDialog):
 		layout.addWidget(frame)
 
 		# LineEdit
-		self._lineEdit = QLineEdit(frame)
-		QObject.connect(self._lineEdit, SIGNAL("textEdited(const QString&)"),
-			self.updateFilter)
+		self._lineEdit = ListViewSearchLine(frame)
 		QObject.connect(self._lineEdit, SIGNAL("returnPressed()"),
 			self.slotReturnPressed)
 
 		self._lineEdit.installEventFilter(self)
 
 		# View
-		self._view = ListView(frame)
-		self._view.setModel(self._proxyModel)
-		self._view.setEditTriggers(QAbstractItemView.NoEditTriggers)
-		QObject.connect(self._view, SIGNAL("activated(const QModelIndex&)"),
+		self._view = KListView(frame)
+		self._view.addColumn("")
+		self._view.header().hide()
+		for name, wid in self._windowList:
+			name = unicode(name, "utf8")
+			QListViewItem(self._view, name)
+
+		if len(self._windowList) > 0:
+			self._view.setSelected(self._view.firstChild(), True)
+
+		QObject.connect(self._view, SIGNAL("clicked(QListViewItem*)"),
 			self.switchToWindow)
+
+		self._lineEdit.setListView(self._view)
 
 		# Layout
 		layout = QVBoxLayout(frame)
@@ -76,12 +72,9 @@ class Window(QDialog):
 		layout.addWidget(self._view)
 
 
-	def updateFilter(self, text):
-		self._proxyModel.setFilterFixedString(text)
-		if not self._view.currentIndex().isValid():
-			firstIndex = self._proxyModel.index(0, 0)
-			if firstIndex.isValid():
-				self._view.setCurrentIndex(firstIndex)
+	def slotCurrentChanged(self, item):
+		if not item:
+			self.selectFirstItem()
 
 
 	def eventFilter(self, obj, event):
@@ -89,25 +82,26 @@ class Window(QDialog):
 			return False
 
 		if event.key() in (Qt.Key_Up, Qt.Key_Down):
-			newEvent = QKeyEvent(event.type(), event.key(), event.modifiers(), event.text())
+			newEvent = QKeyEvent(event.type(), event.key(), event.ascii(), event.state(), event.text())
 			QApplication.postEvent(self._view, newEvent)
 			return True
 
 		return False
 
 
-	def switchToWindow(self, index):
-		sourceIndex = self._proxyModel.mapToSource(index)
-		item = self._model.itemFromIndex(sourceIndex)
-		wid = item.data().toString()
-		wmctrl.switchToWindow(unicode(wid))
-		self.close()
+	def switchToWindow(self, item):
+		itemName = unicode(item.text(0)).encode("utf8")
+		for name, wid in self._windowList:
+			if name == itemName:
+				wmctrl.switchToWindow(unicode(wid))
+				self.close()
+				return
 
 
 	def slotReturnPressed(self):
-		index = self._view.currentIndex()
-		if index.isValid():
-			self.switchToWindow(index)
+		item = self._view.selectedItem()
+		if item and item.isVisible():
+			self.switchToWindow(item)
 		else:
 			cmd = unicode(self._lineEdit.text())
 			os.spawnlp(os.P_NOWAIT, 'sh', 'sh', '-c', cmd)
@@ -115,7 +109,16 @@ class Window(QDialog):
 
 
 def main():
-	app = QApplication(sys.argv)
+	# Keep app global otherwise there is a crash on exit
+	global app
+	description = "A fast window switcher and application launcher"
+	version     = "1.0"
+	aboutData   = KAboutData ("", "",\
+		version, description, KAboutData.License_GPL,\
+		"(C) 2007 Aurelien Gateau")
+	KCmdLineArgs.init (sys.argv, aboutData)
+
+	app = KApplication()
 	window = Window()
 
 	rect = QApplication.desktop().availableGeometry()
@@ -123,9 +126,8 @@ def main():
 		rect.left() + (rect.width() - window.sizeHint().width()) / 2, \
 		rect.top() + (rect.height() - window.sizeHint().height()) / 2 \
 		)
-	window.show()
-	app.exec_()
+	window.exec_loop()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
 	main()
