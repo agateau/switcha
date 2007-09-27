@@ -6,7 +6,6 @@ from qt import *
 from kdecore import *
 from kdeui import *
 
-import wmctrl
 
 class ListViewSearchLine(KListViewSearchLine):
 	def updateSearch(self, text):
@@ -32,7 +31,13 @@ class Window(QDialog):
 
 
 	def initModel(self):
-		self._windowList = wmctrl.getWindowList()
+		kwinModule = KWinModule()
+		self._windowList = []
+		for wid in kwinModule.windows():
+			info = KWin.windowInfo(wid)
+			windowType = info.windowType(NET.AllTypesMask)
+			if windowType not in (NET.Desktop, NET.Dock, NET.Menu):
+				self._windowList.append(info)
 
 
 	def initUi(self):
@@ -53,9 +58,8 @@ class Window(QDialog):
 		self._view = KListView(frame)
 		self._view.addColumn("")
 		self._view.header().hide()
-		for name, wid in self._windowList:
-			name = unicode(name, "utf8")
-			QListViewItem(self._view, name)
+		for info in self._windowList:
+			QListViewItem(self._view, info.visibleName())
 
 		if len(self._windowList) > 0:
 			self._view.setSelected(self._view.firstChild(), True)
@@ -90,10 +94,10 @@ class Window(QDialog):
 
 
 	def switchToWindow(self, item):
-		itemName = unicode(item.text(0)).encode("utf8")
-		for name, wid in self._windowList:
-			if name == itemName:
-				wmctrl.switchToWindow(unicode(wid))
+		itemName = item.text(0)
+		for info in self._windowList:
+			if info.visibleName() == itemName:
+				KWin.forceActiveWindow(info.win())
 				self.close()
 				return
 
