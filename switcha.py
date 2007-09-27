@@ -41,21 +41,15 @@ class Window(QDialog):
 
 
 	def initUi(self):
-		frame = QFrame(self)
-		frame.setFrameStyle(QFrame.Box | QFrame.Plain)
-		layout = QVBoxLayout(self)
-		layout.setMargin(0)
-		layout.addWidget(frame)
-
 		# LineEdit
-		self._lineEdit = ListViewSearchLine(frame)
+		self._lineEdit = ListViewSearchLine(self)
 		QObject.connect(self._lineEdit, SIGNAL("returnPressed()"),
 			self.slotReturnPressed)
 
 		self._lineEdit.installEventFilter(self)
 
 		# View
-		self._view = KListView(frame)
+		self._view = KListView(self)
 		self._view.addColumn("")
 		self._view.header().hide()
 		for info in self._windowList:
@@ -72,8 +66,9 @@ class Window(QDialog):
 		self._lineEdit.setListView(self._view)
 
 		# Layout
-		layout = QVBoxLayout(frame)
+		layout = QVBoxLayout(self)
 		layout.setMargin(6)
+		layout.setSpacing(6)
 		layout.addWidget(self._lineEdit)
 		layout.addWidget(self._view)
 
