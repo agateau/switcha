@@ -2,7 +2,7 @@
 #define WINDOW_H
 
 // Qt
-#include <qdialog.h>
+#include <qwidget.h>
 
 // KDE
 #include <kwin.h>
@@ -13,7 +13,7 @@ class QEvent;
 class KListView;
 class KListViewSearchLine;
 
-class Window : public QDialog {
+class Window : public QWidget {
 	Q_OBJECT
 public:
 	Window();

@@ -1,6 +1,7 @@
 #include "window.moc"
 
 // Qt
+#include <qaccel.h>
 #include <qevent.h>
 #include <qheader.h>
 #include <qlayout.h>
@@ -42,7 +43,7 @@ public:
 
 
 Window::Window()
-: QDialog(0) {
+: QWidget(0) {
 	setCaption(i18n("Switcha"));
 
 	// Line edit
@@ -65,6 +66,12 @@ Window::Window()
 	layout->setSpacing(6);
 	layout->addWidget(mLineEdit);
 	layout->addWidget(mView);
+
+	// Hide with esc
+	QAccel* accel = new QAccel(this);
+	accel->connectItem(
+		accel->insertItem(Key_Escape),
+		this, SLOT(hide()) );
 }
 
 
