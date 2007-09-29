@@ -44,31 +44,7 @@ public:
 Window::Window()
 : QDialog(0) {
 	setCaption(i18n("Switcha"));
-	initList();
-	initUi();
-}
 
-
-void Window::initList() {
-	KWinModule kwinModule;
-	typedef QValueList<WId> WIdList;
-	const WIdList & list = kwinModule.windows();
-
-	WIdList::ConstIterator
-		it = list.begin(),
-		end = list.end();
-
-	for (; it!=end; ++it) {
-		KWin::WindowInfo info = KWin::windowInfo(*it);
-		NET::WindowType type = info.windowType(NET::AllTypesMask);
-		if (type != NET::Desktop && type != NET::Dock && type != NET::Menu) {
-			mWindowInfoList << info;
-		}
-	}
-}
-
-
-void Window::initUi() {
 	// Line edit
 	mLineEdit = new ListViewSearchLine(this);
 	connect(mLineEdit, SIGNAL(returnPressed()), SLOT(slotReturnPressed()) );
@@ -76,8 +52,33 @@ void Window::initUi() {
 
 	// View
 	mView = new KListView(this);
-	mView->addColumn("");
 	mView->header()->hide();
+	mView->addColumn("");
+	mView->setResizeMode(QListView::LastColumn);
+	connect(mView, SIGNAL(clicked(QListViewItem*)), SLOT(switchToWindow(QListViewItem*)) );
+
+	mLineEdit->setListView(mView);
+
+	// Layout
+	QVBoxLayout* layout = new QVBoxLayout(this);
+	layout->setMargin(6);
+	layout->setSpacing(6);
+	layout->addWidget(mLineEdit);
+	layout->addWidget(mView);
+}
+
+
+void Window::closeEvent(QCloseEvent* event) {
+	hide();
+	event->ignore();
+}
+
+
+void Window::showAgain() {
+	mLineEdit->clear();
+	mView->clear();
+
+	updateWindowInfoList();
 
 	WindowInfoList::ConstIterator
 		it = mWindowInfoList.begin(),
@@ -94,16 +95,36 @@ void Window::initUi() {
 		mView->setSelected(mView->firstChild(), true);
 	}
 
-	connect(mView, SIGNAL(clicked(QListViewItem*)), SLOT(switchToWindow(QListViewItem*)) );
+	QRect rect = QApplication::desktop()->availableGeometry();
+	int width = mView->columnWidth(0) + 30;
+	int height = 300;
+	move(
+		rect.left() + (rect.width() - width) / 2,
+		rect.top() + (rect.height() - height) / 2
+		);
+	resize(width, height);
+	show();
+	KWin::forceActiveWindow(winId());
+}
 
-	mLineEdit->setListView(mView);
 
-	// Layout
-	QVBoxLayout* layout = new QVBoxLayout(this);
-	layout->setMargin(6);
-	layout->setSpacing(6);
-	layout->addWidget(mLineEdit);
-	layout->addWidget(mView);
+void Window::updateWindowInfoList() {
+	KWinModule kwinModule;
+	typedef QValueList<WId> WIdList;
+	const WIdList & list = kwinModule.windows();
+
+	WIdList::ConstIterator
+		it = list.begin(),
+		end = list.end();
+
+	mWindowInfoList.clear();
+	for (; it!=end; ++it) {
+		KWin::WindowInfo info = KWin::windowInfo(*it);
+		NET::WindowType type = info.windowType(NET::AllTypesMask);
+		if (type != NET::Desktop && type != NET::Dock && type != NET::Menu) {
+			mWindowInfoList << info;
+		}
+	}
 }
 
 
@@ -135,8 +156,8 @@ void Window::switchToWindow(QListViewItem* item) {
 	for (; it!=end; ++it) {
 		KWin::WindowInfo info = *it;
 		if (info.visibleName() == itemName) {
+			hide();
 			KWin::forceActiveWindow(info.win());
-			close();
 			return;
 		}
 	}
@@ -149,6 +170,6 @@ void Window::slotReturnPressed() {
 	} else {
 		QString cmd = mLineEdit->text();
 		KRun::runCommand(cmd);
-		close();
+		hide();
 	}
 }

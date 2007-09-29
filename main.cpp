@@ -1,13 +1,12 @@
 // Local
 #include "window.h"
 
-// Qt
-#include <qlabel.h>
-
 // KDE
 #include <kaboutdata.h>
 #include <kapplication.h>
 #include <kcmdlineargs.h>
+#include <kglobalaccel.h>
+#include <ksystemtray.h>
 
 int main(int argc, char** argv) {
 	KAboutData aboutData("switcha", I18N_NOOP("Switcha"),
@@ -18,13 +17,16 @@ int main(int argc, char** argv) {
 	KApplication kapplication;
 
 	Window window;
-	QRect rect = QApplication::desktop()->availableGeometry();
-	window.move(
-		rect.left() + (rect.width() - window.sizeHint().width()) / 2,
-		rect.top() + (rect.height() - window.sizeHint().height()) / 2
-		);
-	window.show();
 	kapplication.setMainWidget(&window);
+
+	KSystemTray tray(&window);
+	tray.show();
+
+	KGlobalAccel accel(&window);
+	accel.insert("show", i18n("Show"),
+		i18n("Show Switcha window"),
+		Qt::ALT + Qt::Key_F6, 0, &window, SLOT(showAgain()) );
+	accel.updateConnections();
 
 	return kapplication.exec();
 }

@@ -7,6 +7,7 @@
 // KDE
 #include <kwin.h>
 
+class QCloseEvent;
 class QListViewItem;
 class QEvent;
 class KListView;
@@ -17,17 +18,20 @@ class Window : public QDialog {
 public:
 	Window();
 
+public slots:
+	void showAgain();
 
 protected:
 	virtual bool eventFilter(QObject*, QEvent*);
+
+	virtual void closeEvent(QCloseEvent*);
 
 private slots:
 	void switchToWindow(QListViewItem*);
 	void slotReturnPressed();
 
 private:
-	void initList();
-	void initUi();
+	void updateWindowInfoList();
 
 	typedef QValueList<KWin::WindowInfo> WindowInfoList;
 	WindowInfoList mWindowInfoList;
