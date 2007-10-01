@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 	KGlobalAccel accel(&window);
 	accel.insert("show", i18n("Show"),
 		i18n("Show Switcha window"),
-		Qt::ALT + Qt::Key_F6, 0, &window, SLOT(showAgain()) );
+		Qt::ALT + Qt::Key_F5, 0, &window, SLOT(showAgain()) );
 	accel.updateConnections();
 
 	return kapplication.exec();
