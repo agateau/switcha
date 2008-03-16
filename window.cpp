@@ -4,15 +4,20 @@
 #include <qaccel.h>
 #include <qevent.h>
 #include <qheader.h>
+#include <qlabel.h>
 #include <qlayout.h>
+#include <qtimer.h>
 
 // KDE
+#include <kdebug.h>
 #include <klistview.h>
 #include <klistviewsearchline.h>
 #include <klocale.h>
 #include <krun.h>
+#include <kurifilter.h>
 #include <kwinmodule.h>
 
+const int ERROR_TIMEOUT = 5000;
 
 /**
  * Subclass KListViewSearchLine to select the first visible item if the
@@ -176,7 +181,41 @@ void Window::slotReturnPressed() {
 		switchToWindow(item);
 	} else {
 		QString cmd = mLineEdit->text();
-		KRun::runCommand(cmd);
-		hide();
+		run(cmd);
 	}
+}
+
+void Window::run(const QString& cmd) {
+	KURIFilterData filterData(cmd);
+	KURIFilter::self()->filterURI(filterData);
+	kdDebug() << "filterData.uriType" << filterData.uriType() << endl;
+	switch (filterData.uriType()) {
+	case KURIFilterData::LOCAL_FILE:
+	case KURIFilterData::LOCAL_DIR:
+	case KURIFilterData::NET_PROTOCOL:
+	case KURIFilterData::HELP:
+		new KRun(filterData.uri(), this);
+		break;
+
+	case KURIFilterData::EXECUTABLE:
+	case KURIFilterData::SHELL:
+		KRun::runCommand(cmd);
+		break;
+
+	case KURIFilterData::BLOCKED:
+	case KURIFilterData::UNKNOWN:
+	case KURIFilterData::ERROR:
+		showErrorMessage("Could not start this command");
+		return;
+	}
+	hide();
+}
+
+
+void Window::showErrorMessage(const QString& msg) {
+	QLabel* label = new QLabel(this);
+	label->setText(QString("<font color='red'>%1</font>").arg(msg));
+	label->show();
+	layout()->add(label);
+	QTimer::singleShot(ERROR_TIMEOUT, label, SLOT(deleteLater()) );
 }

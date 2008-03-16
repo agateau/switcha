@@ -29,9 +29,11 @@ protected:
 private slots:
 	void switchToWindow(QListViewItem*);
 	void slotReturnPressed();
+	void run(const QString&);
 
 private:
 	void updateWindowInfoList();
+	void showErrorMessage(const QString& msg);
 
 	typedef QValueList<KWin::WindowInfo> WindowInfoList;
 	WindowInfoList mWindowInfoList;
